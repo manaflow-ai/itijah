@@ -13,9 +13,9 @@ const visual_inplace_threshold: u32 = 2048;
 const compact_map_min_len: u32 = 8192;
 
 pub const ReorderScratch = struct {
-    visual: std.ArrayListUnmanaged(u21) = .{},
-    map16: std.ArrayListUnmanaged(u16) = .{},
-    map32: std.ArrayListUnmanaged(u32) = .{},
+    visual: std.ArrayListUnmanaged(u21) = .empty,
+    map16: std.ArrayListUnmanaged(u16) = .empty,
+    map32: std.ArrayListUnmanaged(u32) = .empty,
 
     pub fn deinit(self: *ReorderScratch, allocator: Allocator) void {
         self.visual.deinit(allocator);
@@ -25,9 +25,9 @@ pub const ReorderScratch = struct {
 };
 
 pub const ReorderLineScratch = struct {
-    visual: std.ArrayListUnmanaged(u21) = .{},
-    l_to_v: std.ArrayListUnmanaged(u32) = .{},
-    v_to_l: std.ArrayListUnmanaged(u32) = .{},
+    visual: std.ArrayListUnmanaged(u21) = .empty,
+    l_to_v: std.ArrayListUnmanaged(u32) = .empty,
+    v_to_l: std.ArrayListUnmanaged(u32) = .empty,
 
     pub fn deinit(self: *ReorderLineScratch, allocator: Allocator) void {
         self.visual.deinit(allocator);
@@ -37,8 +37,8 @@ pub const ReorderLineScratch = struct {
 };
 
 pub const VisualRunsScratch = struct {
-    v_to_l: std.ArrayListUnmanaged(u32) = .{},
-    runs: std.ArrayListUnmanaged(types.VisualRun) = .{},
+    v_to_l: std.ArrayListUnmanaged(u32) = .empty,
+    runs: std.ArrayListUnmanaged(types.VisualRun) = .empty,
 
     pub fn deinit(self: *VisualRunsScratch, allocator: Allocator) void {
         self.v_to_l.deinit(allocator);
@@ -47,8 +47,8 @@ pub const VisualRunsScratch = struct {
 };
 
 pub const LogToVisScratch = struct {
-    v_to_l: std.ArrayListUnmanaged(u32) = .{},
-    l_to_v: std.ArrayListUnmanaged(u32) = .{},
+    v_to_l: std.ArrayListUnmanaged(u32) = .empty,
+    l_to_v: std.ArrayListUnmanaged(u32) = .empty,
 
     pub fn deinit(self: *LogToVisScratch, allocator: Allocator) void {
         self.v_to_l.deinit(allocator);
@@ -335,7 +335,7 @@ pub fn visualRuns(
     const extents = levelExtents(levels, base_level);
     applyL2(v_to_l, levels, len, extents.min_odd, extents.max_level);
 
-    var runs = std.ArrayListUnmanaged(types.VisualRun){};
+    var runs: std.ArrayListUnmanaged(types.VisualRun) = .empty;
     errdefer runs.deinit(allocator);
     try buildVisualRunsFromVToL(allocator, &runs, v_to_l, levels);
 
@@ -807,7 +807,7 @@ test "visual runs reconstruct reorder v_to_l map" {
     const runs = try visualRuns(gpa, &levels, 0);
     defer gpa.free(runs);
 
-    var rebuilt = std.ArrayListUnmanaged(u32){};
+    var rebuilt: std.ArrayListUnmanaged(u32) = .empty;
     defer rebuilt.deinit(gpa);
     try rebuilt.ensureTotalCapacity(gpa, reordered.v_to_l.len);
 

@@ -55,7 +55,7 @@ const bidi_class_names = [_]struct { name: []const u8, class: itijah.BidiClass }
 };
 
 fn selectedMode() Mode {
-    if (std.process.getEnvVarOwned(std.heap.page_allocator, "ITIJAH_CONFORMANCE_MODE")) |mode_name| {
+    if (std.testing.environ.getAlloc(std.heap.page_allocator, "ITIJAH_CONFORMANCE_MODE")) |mode_name| {
         defer std.heap.page_allocator.free(mode_name);
         if (std.ascii.eqlIgnoreCase(mode_name, "full")) {
             return .{
@@ -67,7 +67,7 @@ fn selectedMode() Mode {
         }
     } else |_| {}
 
-    if (std.process.getEnvVarOwned(std.heap.page_allocator, "ITIJAH_CONFORMANCE_FULL")) |flag| {
+    if (std.testing.environ.getAlloc(std.heap.page_allocator, "ITIJAH_CONFORMANCE_FULL")) |flag| {
         defer std.heap.page_allocator.free(flag);
         if (std.mem.eql(u8, flag, "1") or std.ascii.eqlIgnoreCase(flag, "true")) {
             return .{
@@ -224,7 +224,7 @@ fn runCase(
         if (vis.v_to_l[vis.l_to_v[logical_idx]] != logical_idx) return false;
     }
 
-    var actual_ordering = std.ArrayListUnmanaged(u32){};
+    var actual_ordering: std.ArrayListUnmanaged(u32) = .empty;
     defer actual_ordering.deinit(allocator);
     for (vis.v_to_l) |logical_idx| {
         if (!expected_levels[logical_idx].ignored) {
@@ -247,14 +247,14 @@ fn runBidiTest(allocator: std.mem.Allocator, mode: Mode) !Stats {
     var have_expected_levels = false;
     var have_expected_reorder = false;
 
-    var expected_levels = std.ArrayListUnmanaged(ExpectedLevel){};
+    var expected_levels: std.ArrayListUnmanaged(ExpectedLevel) = .empty;
     defer expected_levels.deinit(allocator);
-    var expected_ordering = std.ArrayListUnmanaged(u32){};
+    var expected_ordering: std.ArrayListUnmanaged(u32) = .empty;
     defer expected_ordering.deinit(allocator);
 
-    var classes = std.ArrayListUnmanaged(itijah.BidiClass){};
+    var classes: std.ArrayListUnmanaged(itijah.BidiClass) = .empty;
     defer classes.deinit(allocator);
-    var cps = std.ArrayListUnmanaged(u21){};
+    var cps: std.ArrayListUnmanaged(u21) = .empty;
     defer cps.deinit(allocator);
 
     var line_iter = std.mem.splitScalar(u8, bidi_test_data, '\n');
@@ -357,11 +357,11 @@ fn runBidiTest(allocator: std.mem.Allocator, mode: Mode) !Stats {
 fn runBidiCharacterTest(allocator: std.mem.Allocator, mode: Mode) !Stats {
     var stats = Stats{};
     var line_iter = std.mem.splitScalar(u8, bidi_char_test_data, '\n');
-    var cps = std.ArrayListUnmanaged(u21){};
+    var cps: std.ArrayListUnmanaged(u21) = .empty;
     defer cps.deinit(allocator);
-    var expected_levels = std.ArrayListUnmanaged(ExpectedLevel){};
+    var expected_levels: std.ArrayListUnmanaged(ExpectedLevel) = .empty;
     defer expected_levels.deinit(allocator);
-    var expected_ordering = std.ArrayListUnmanaged(u32){};
+    var expected_ordering: std.ArrayListUnmanaged(u32) = .empty;
     defer expected_ordering.deinit(allocator);
 
     while (line_iter.next()) |line| {

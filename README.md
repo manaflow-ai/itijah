@@ -148,7 +148,7 @@ zig build test-diff  # differential harness vs fribidi + ICU (deterministic gene
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for branch policy, required checks, release gate, and performance workflow.
 
-Requires Zig 0.15.2+.
+Requires Zig 0.16.0+.
 
 ## Dependencies
 

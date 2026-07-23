@@ -5,7 +5,7 @@ const have_zabadi = compare_options.have_zabadi;
 const zbd = if (have_zabadi) @import("zabadi") else struct {};
 
 const c = @cImport({
-    @cInclude("fribidi/fribidi.h");
+    @cInclude("fribidi.h");
 });
 
 extern fn itijah_fribidi_probe_available() c_int;
@@ -397,7 +397,7 @@ const bench_cases = [_]Case{
 };
 
 fn encodeUtf16(allocator: Allocator, cps: []const u21) ![]u16 {
-    var out = std.ArrayListUnmanaged(u16){};
+    var out: std.ArrayListUnmanaged(u16) = .empty;
     errdefer out.deinit(allocator);
 
     for (cps) |cp| {
@@ -414,7 +414,7 @@ fn encodeUtf16(allocator: Allocator, cps: []const u21) ![]u16 {
 }
 
 fn encodeUtf8(allocator: Allocator, cps: []const u21) ![]u8 {
-    var out = std.ArrayListUnmanaged(u8){};
+    var out: std.ArrayListUnmanaged(u8) = .empty;
     errdefer out.deinit(allocator);
 
     var scratch: [4]u8 = undefined;
@@ -725,7 +725,7 @@ fn fribidiParityCase(allocator: Allocator, case: Case) !?Mismatch {
     }
 
     // Terminal-focused parity: run-derived mapping must reconstruct v_to_l.
-    var rebuilt = std.ArrayListUnmanaged(u32){};
+    var rebuilt: std.ArrayListUnmanaged(u32) = .empty;
     defer rebuilt.deinit(allocator);
     try rebuilt.ensureTotalCapacity(allocator, layout.v_to_l.len);
     for (layout.runs) |run| {
@@ -755,18 +755,18 @@ fn fribidiParityCase(allocator: Allocator, case: Case) !?Mismatch {
     return null;
 }
 
-fn parityOnlyMode() bool {
-    const flag = std.process.getEnvVarOwned(std.heap.page_allocator, "ITIJAH_COMPARE_ONLY_PARITY") catch |err| switch (err) {
-        error.EnvironmentVariableNotFound => return false,
+fn parityOnlyMode(environ: std.process.Environ) bool {
+    const flag = environ.getAlloc(std.heap.page_allocator, "ITIJAH_COMPARE_ONLY_PARITY") catch |err| switch (err) {
+        error.EnvironmentVariableMissing => return false,
         else => return false,
     };
     defer std.heap.page_allocator.free(flag);
     return std.mem.eql(u8, flag, "1") or std.ascii.eqlIgnoreCase(flag, "true");
 }
 
-fn includeHugeMode() bool {
-    const flag = std.process.getEnvVarOwned(std.heap.page_allocator, "ITIJAH_COMPARE_INCLUDE_HUGE") catch |err| switch (err) {
-        error.EnvironmentVariableNotFound => return false,
+fn includeHugeMode(environ: std.process.Environ) bool {
+    const flag = environ.getAlloc(std.heap.page_allocator, "ITIJAH_COMPARE_INCLUDE_HUGE") catch |err| switch (err) {
+        error.EnvironmentVariableMissing => return false,
         else => return false,
     };
     defer std.heap.page_allocator.free(flag);
@@ -1012,7 +1012,7 @@ fn runBenchCase(
     try bench(writer, case, .icu, .reorder_line, utf8, utf16, icu);
 }
 
-pub fn main() !void {
+pub fn main(init: std.process.Init) !void {
     if (itijah_fribidi_probe_available() == 0) {
         return error.MemoryProbeUnavailable;
     }
@@ -1052,13 +1052,13 @@ pub fn main() !void {
     }
     try writer.print("  summary: {d}/{d} PASS\n", .{ parity_ok, parity_cases.len });
 
-    if (parityOnlyMode()) {
+    if (parityOnlyMode(init.minimal.environ)) {
         try writer.flush();
         return;
     }
 
     try writer.writeAll("mode: itijah scratch-only paths enabled\n");
-    const include_huge = includeHugeMode();
+    const include_huge = includeHugeMode(init.minimal.environ);
     if (include_huge) {
         try writer.writeAll("mode: huge corpus set enabled (ITIJAH_COMPARE_INCLUDE_HUGE=1)\n");
     }

@@ -44,8 +44,8 @@ pub const VisualLayoutScratch = struct {
     embedding: EmbeddingScratch = .{},
     log_to_vis: LogToVisScratch = .{},
     visual_runs: VisualRunsScratch = .{},
-    levels: std.ArrayListUnmanaged(BidiLevel) = .{},
-    v_to_l: std.ArrayListUnmanaged(u32) = .{},
+    levels: std.ArrayListUnmanaged(BidiLevel) = .empty,
+    v_to_l: std.ArrayListUnmanaged(u32) = .empty,
 
     pub fn deinit(self: *VisualLayoutScratch, allocator: Allocator) void {
         self.embedding.deinit(allocator);

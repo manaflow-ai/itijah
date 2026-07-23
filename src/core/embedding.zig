@@ -66,18 +66,18 @@ const BracketInfo = struct {
 };
 
 pub const EmbeddingScratch = struct {
-    classes: ArrayList(BidiClass) = .{},
-    runs: ArrayList(Run) = .{},
-    level_runs: ArrayList(LevelRun) = .{},
-    levels: ArrayList(BidiLevel) = .{},
-    run_indices_pool: ArrayList(u32) = .{},
-    sequences: ArrayList(IsolatingRunSequence) = .{},
-    irs_stack: ArrayList(u32) = .{},
-    irs_finished: ArrayList(u32) = .{},
-    irs_seq_meta: ArrayList(IsolatingSeqMeta) = .{},
-    irs_seq_nodes: ArrayList(IsolatingSeqNode) = .{},
-    et_run_indices: ArrayList(u32) = .{},
-    bracket_pairs: ArrayList(BracketPair) = .{},
+    classes: ArrayList(BidiClass) = .empty,
+    runs: ArrayList(Run) = .empty,
+    level_runs: ArrayList(LevelRun) = .empty,
+    levels: ArrayList(BidiLevel) = .empty,
+    run_indices_pool: ArrayList(u32) = .empty,
+    sequences: ArrayList(IsolatingRunSequence) = .empty,
+    irs_stack: ArrayList(u32) = .empty,
+    irs_finished: ArrayList(u32) = .empty,
+    irs_seq_meta: ArrayList(IsolatingSeqMeta) = .empty,
+    irs_seq_nodes: ArrayList(IsolatingSeqNode) = .empty,
+    et_run_indices: ArrayList(u32) = .empty,
+    bracket_pairs: ArrayList(BracketPair) = .empty,
 
     pub fn deinit(self: *EmbeddingScratch, allocator: Allocator) void {
         self.classes.deinit(allocator);
@@ -306,7 +306,7 @@ pub fn getParEmbeddingLevels(
     par_dir.* = resolved_dir;
 
     // Build run-length encoded runs
-    var runs = ArrayList(Run){};
+    var runs: ArrayList(Run) = .empty;
     defer runs.deinit(allocator);
     try buildRuns(allocator, &runs, classes, codepoints, len);
 
@@ -1259,7 +1259,7 @@ fn computeIsolatingRunSequences(
     base_level: BidiLevel,
 ) !IsolatingRunSequences {
     const SequenceBuilder = struct {
-        ranges: ArrayList(LevelRun) = .{},
+        ranges: ArrayList(LevelRun) = .empty,
 
         fn deinit(self: *@This(), a: Allocator) void {
             self.ranges.deinit(a);
@@ -1315,7 +1315,7 @@ fn computeIsolatingRunSequences(
         };
     }
 
-    var finished = ArrayList(SequenceBuilder){};
+    var finished: ArrayList(SequenceBuilder) = .empty;
     defer {
         for (finished.items) |*seq| seq.deinit(allocator);
         finished.deinit(allocator);
@@ -1323,7 +1323,7 @@ fn computeIsolatingRunSequences(
     try finished.ensureTotalCapacity(allocator, level_runs.len);
 
     if (has_isolates) {
-        var stack = ArrayList(SequenceBuilder){};
+        var stack: ArrayList(SequenceBuilder) = .empty;
         defer {
             for (stack.items) |*seq| seq.deinit(allocator);
             stack.deinit(allocator);
@@ -1574,7 +1574,7 @@ fn resolveWeakWithEtBuffer(
 }
 
 fn resolveWeak(allocator: Allocator, runs: []Run, sequences: []const IsolatingRunSequence) !void {
-    var et_run_indices = ArrayList(u32){};
+    var et_run_indices: ArrayList(u32) = .empty;
     defer et_run_indices.deinit(allocator);
     try resolveWeakWithEtBuffer(allocator, &et_run_indices, runs, sequences);
 }
@@ -1682,7 +1682,7 @@ fn collectBracketPairsPerSequence(
     runs: []const Run,
     sequences: []const IsolatingRunSequence,
 ) ![]BracketPair {
-    var pairs = ArrayList(BracketPair){};
+    var pairs: ArrayList(BracketPair) = .empty;
     errdefer pairs.deinit(allocator);
     try collectBracketPairsPerSequenceInto(allocator, &pairs, codepoints, runs, sequences);
     return try pairs.toOwnedSlice(allocator);
@@ -2110,7 +2110,7 @@ test "spec target: N0 does not pair across disjoint IRS at same isolate level" {
     defer gpa.free(classes);
     for (cps, 0..) |cp, i| classes[i] = unicode.bidiClass(cp);
 
-    var runs = ArrayList(Run){};
+    var runs: ArrayList(Run) = .empty;
     defer runs.deinit(gpa);
     try buildRuns(gpa, &runs, classes, &cps, @intCast(cps.len));
     try resolveExplicit(&runs, 0);
@@ -2171,7 +2171,7 @@ test "spec target: N0 ignores strong text from nested isolate inside bracket spa
     defer gpa.free(classes);
     for (cps, 0..) |cp, i| classes[i] = unicode.bidiClass(cp);
 
-    var runs = ArrayList(Run){};
+    var runs: ArrayList(Run) = .empty;
     defer runs.deinit(gpa);
     try buildRuns(gpa, &runs, classes, &cps, @intCast(cps.len));
     try resolveExplicit(&runs, 0);
@@ -2337,7 +2337,7 @@ test "conformance regression: explicit controls do not perturb ordering (sample 
     var emb = try getParEmbeddingLevels(gpa, &cps, &dir);
     defer emb.deinit(gpa);
 
-    var actual_levels = std.ArrayListUnmanaged(BidiLevel){};
+    var actual_levels: std.ArrayListUnmanaged(BidiLevel) = .empty;
     defer actual_levels.deinit(gpa);
     for (emb.levels, 0..) |level, idx| {
         if (!ignored[idx]) {
@@ -2349,7 +2349,7 @@ test "conformance regression: explicit controls do not perturb ordering (sample 
     var vis = try reorder.reorderLine(gpa, &cps, emb.levels, dir.toLevel());
     defer vis.deinit(gpa);
 
-    var actual = std.ArrayListUnmanaged(u32){};
+    var actual: std.ArrayListUnmanaged(u32) = .empty;
     defer actual.deinit(gpa);
     for (vis.v_to_l) |logical_idx| {
         if (!ignored[logical_idx]) {
@@ -2373,7 +2373,7 @@ test "conformance regression: explicit controls with brackets in RTL (sample 6)"
     var emb = try getParEmbeddingLevels(gpa, &cps, &dir);
     defer emb.deinit(gpa);
 
-    var actual_levels = std.ArrayListUnmanaged(BidiLevel){};
+    var actual_levels: std.ArrayListUnmanaged(BidiLevel) = .empty;
     defer actual_levels.deinit(gpa);
     for (emb.levels, 0..) |level, idx| {
         if (!ignored[idx]) {
@@ -2385,7 +2385,7 @@ test "conformance regression: explicit controls with brackets in RTL (sample 6)"
     var vis = try reorder.reorderLine(gpa, &cps, emb.levels, dir.toLevel());
     defer vis.deinit(gpa);
 
-    var actual = std.ArrayListUnmanaged(u32){};
+    var actual: std.ArrayListUnmanaged(u32) = .empty;
     defer actual.deinit(gpa);
     for (vis.v_to_l) |logical_idx| {
         if (!ignored[logical_idx]) {
@@ -2410,7 +2410,7 @@ test "conformance regression: R ON RLE B in ltr keeps ON at level 0" {
     var emb = try getParEmbeddingLevels(gpa, &cps, &dir);
     defer emb.deinit(gpa);
 
-    var actual_levels = std.ArrayListUnmanaged(BidiLevel){};
+    var actual_levels: std.ArrayListUnmanaged(BidiLevel) = .empty;
     defer actual_levels.deinit(gpa);
     for (emb.levels, 0..) |level, idx| {
         if (!ignored[idx]) {
@@ -2422,7 +2422,7 @@ test "conformance regression: R ON RLE B in ltr keeps ON at level 0" {
     var vis = try reorder.reorderLine(gpa, &cps, emb.levels, dir.toLevel());
     defer vis.deinit(gpa);
 
-    var actual = std.ArrayListUnmanaged(u32){};
+    var actual: std.ArrayListUnmanaged(u32) = .empty;
     defer actual.deinit(gpa);
     for (vis.v_to_l) |logical_idx| {
         if (!ignored[logical_idx]) {
@@ -2466,7 +2466,7 @@ test "conformance regression: BidiCharacter sample 1" {
     var emb = try getParEmbeddingLevels(gpa, &cps, &dir);
     defer emb.deinit(gpa);
 
-    var actual_levels = std.ArrayListUnmanaged(BidiLevel){};
+    var actual_levels: std.ArrayListUnmanaged(BidiLevel) = .empty;
     defer actual_levels.deinit(gpa);
     for (emb.levels, 0..) |level, idx| {
         if (!ignored[idx]) {
@@ -2477,7 +2477,7 @@ test "conformance regression: BidiCharacter sample 1" {
 
     var vis = try reorder.reorderLine(gpa, &cps, emb.levels, dir.toLevel());
     defer vis.deinit(gpa);
-    var actual_order = std.ArrayListUnmanaged(u32){};
+    var actual_order: std.ArrayListUnmanaged(u32) = .empty;
     defer actual_order.deinit(gpa);
     for (vis.v_to_l) |logical_idx| {
         if (!ignored[logical_idx]) {
@@ -2501,7 +2501,7 @@ test "conformance regression: BidiCharacter sample 4" {
     var emb = try getParEmbeddingLevels(gpa, &cps, &dir);
     defer emb.deinit(gpa);
 
-    var actual_levels = std.ArrayListUnmanaged(BidiLevel){};
+    var actual_levels: std.ArrayListUnmanaged(BidiLevel) = .empty;
     defer actual_levels.deinit(gpa);
     for (emb.levels, 0..) |level, idx| {
         if (!ignored[idx]) {
@@ -2512,7 +2512,7 @@ test "conformance regression: BidiCharacter sample 4" {
 
     var vis = try reorder.reorderLine(gpa, &cps, emb.levels, dir.toLevel());
     defer vis.deinit(gpa);
-    var actual_order = std.ArrayListUnmanaged(u32){};
+    var actual_order: std.ArrayListUnmanaged(u32) = .empty;
     defer actual_order.deinit(gpa);
     for (vis.v_to_l) |logical_idx| {
         if (!ignored[logical_idx]) {

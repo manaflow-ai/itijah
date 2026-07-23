@@ -46,7 +46,7 @@ pub fn build(b: *std.Build) void {
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&run_tests.step);
 
-    if (std.fs.cwd().access("src/test/diff_oracle.zig", .{})) |_| {
+    if (std.Io.Dir.cwd().access(b.graph.io, "src/test/diff_oracle.zig", .{})) |_| {
         const diff_mod = b.createModule(.{
             .root_source_file = b.path("src/test/diff_oracle.zig"),
             .target = b.graph.host,
@@ -59,14 +59,14 @@ pub fn build(b: *std.Build) void {
             .name = "itijah-test-diff",
             .root_module = diff_mod,
         });
-        diff_exe.linkSystemLibrary("fribidi");
+        diff_exe.root_module.linkSystemLibrary("fribidi", .{});
 
         const run_diff = b.addRunArtifact(diff_exe);
         const diff_step = b.step("test-diff", "Run deterministic differential tests vs FriBidi + ICU");
         diff_step.dependOn(&run_diff.step);
     } else |_| {}
 
-    if (std.fs.cwd().access("bench/bench.zig", .{})) |_| {
+    if (std.Io.Dir.cwd().access(b.graph.io, "bench/bench.zig", .{})) |_| {
         const bench_mod = b.createModule(.{
             .root_source_file = b.path("bench/bench.zig"),
             .target = b.graph.host,
@@ -83,7 +83,7 @@ pub fn build(b: *std.Build) void {
         const bench_step = b.step("bench", "Run benchmarks");
         bench_step.dependOn(&run_bench.step);
 
-        if (std.fs.cwd().access("bench/compare.zig", .{})) |_| {
+        if (std.Io.Dir.cwd().access(b.graph.io, "bench/compare.zig", .{})) |_| {
             const compare_mod = b.createModule(.{
                 .root_source_file = b.path("bench/compare.zig"),
                 .target = b.graph.host,
@@ -94,7 +94,7 @@ pub fn build(b: *std.Build) void {
 
             const compare_options = b.addOptions();
             var have_zabadi = false;
-            if (std.fs.cwd().access("../zabadi/src/lib.zig", .{})) |_| {
+            if (std.Io.Dir.cwd().access(b.graph.io, "../zabadi/src/lib.zig", .{})) |_| {
                 have_zabadi = true;
                 const zabadi_mod = b.createModule(.{
                     .root_source_file = .{ .cwd_relative = "../zabadi/src/lib.zig" },
@@ -120,8 +120,8 @@ pub fn build(b: *std.Build) void {
                 .name = "itijah-compare",
                 .root_module = compare_mod,
             });
-            compare_exe.linkSystemLibrary("fribidi");
-            compare_exe.addCSourceFile(.{
+            compare_exe.root_module.linkSystemLibrary("fribidi", .{});
+            compare_exe.root_module.addCSourceFile(.{
                 .file = b.path("bench/fribidi_memprobe.c"),
             });
 
@@ -131,7 +131,7 @@ pub fn build(b: *std.Build) void {
         } else |_| {}
     } else |_| {}
 
-    if (std.fs.cwd().access("examples/basic.zig", .{})) |_| {
+    if (std.Io.Dir.cwd().access(b.graph.io, "examples/basic.zig", .{})) |_| {
         const example_mod = b.createModule(.{
             .root_source_file = b.path("examples/basic.zig"),
             .target = b.graph.host,

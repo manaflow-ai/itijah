@@ -8,12 +8,12 @@
             .lazy = true,
         },
         .uucode = .{
-            .url = "https://github.com/jacobsandlund/uucode/archive/refs/tags/v0.2.0.tar.gz",
-            .hash = "uucode-0.2.0-ZZjBPqZVVABQepOqZHR7vV_NcaN-wats0IB6o-Exj6m9",
+            .url = "https://github.com/jacobsandlund/uucode/archive/2826a37a4562284fdacd8fa029d49509cc9bffcd.tar.gz",
+            .hash = "uucode-0.2.0-ZZjBPlK5VADj7fdoq7G8LIHzD5o6FSkcBXXrRWr4jnrA",
         },
     },
     .fingerprint = 0xae8afccd6159e191,
-    .minimum_zig_version = "0.15.2",
+    .minimum_zig_version = "0.16.0",
     .paths = .{
         "build.zig",
         "build.zig.zon",
