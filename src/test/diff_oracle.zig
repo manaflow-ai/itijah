@@ -2,7 +2,7 @@ const std = @import("std");
 const itijah = @import("itijah");
 
 const c = @cImport({
-    @cInclude("fribidi/fribidi.h");
+    @cInclude("fribidi.h");
 });
 
 const Allocator = std.mem.Allocator;
@@ -51,18 +51,18 @@ const Config = struct {
     skip_fribidi: bool,
     icu_use_set_line: bool,
 
-    fn load() Config {
+    fn load(environ: std.process.Environ) Config {
         return .{
-            .cases_per_seed_profile = envUsize("ITIJAH_DIFF_CASES_PER_PROFILE", 6),
-            .max_len = envUsize("ITIJAH_DIFF_MAX_LEN", 1024),
-            .max_reported_mismatches = envUsize("ITIJAH_DIFF_MAX_REPORTED", 30),
-            .stop_on_first = envBool("ITIJAH_DIFF_STOP_ON_FIRST", false),
-            .fail_on_icu = envBool("ITIJAH_DIFF_REQUIRE_ICU", false),
-            .icu_min_pass_rate = envF64("ITIJAH_DIFF_ICU_MIN_PASS_RATE", 60.0 / 62.0),
-            .require_fribidi = envBool("ITIJAH_DIFF_REQUIRE_FRIBIDI", false),
-            .print_full_case = envBool("ITIJAH_DIFF_PRINT_FULL_CASE", false),
-            .skip_fribidi = envBool("ITIJAH_DIFF_SKIP_FRIBIDI", false),
-            .icu_use_set_line = envBool("ITIJAH_DIFF_ICU_USE_SET_LINE", false),
+            .cases_per_seed_profile = envUsize(environ, "ITIJAH_DIFF_CASES_PER_PROFILE", 6),
+            .max_len = envUsize(environ, "ITIJAH_DIFF_MAX_LEN", 1024),
+            .max_reported_mismatches = envUsize(environ, "ITIJAH_DIFF_MAX_REPORTED", 30),
+            .stop_on_first = envBool(environ, "ITIJAH_DIFF_STOP_ON_FIRST", false),
+            .fail_on_icu = envBool(environ, "ITIJAH_DIFF_REQUIRE_ICU", false),
+            .icu_min_pass_rate = envF64(environ, "ITIJAH_DIFF_ICU_MIN_PASS_RATE", 60.0 / 62.0),
+            .require_fribidi = envBool(environ, "ITIJAH_DIFF_REQUIRE_FRIBIDI", false),
+            .print_full_case = envBool(environ, "ITIJAH_DIFF_PRINT_FULL_CASE", false),
+            .skip_fribidi = envBool(environ, "ITIJAH_DIFF_SKIP_FRIBIDI", false),
+            .icu_use_set_line = envBool(environ, "ITIJAH_DIFF_ICU_USE_SET_LINE", false),
         };
     }
 };
@@ -155,27 +155,27 @@ const brackets = [_]u21{ '(', ')', '[', ']', '{', '}', '<', '>' };
 const spaces = [_]u21{ ' ', '\t' };
 const isolate_openers = [_]u21{ 0x2066, 0x2067, 0x2068 };
 
-fn envBool(name: []const u8, default_value: bool) bool {
-    const value = std.process.getEnvVarOwned(std.heap.page_allocator, name) catch |err| switch (err) {
-        error.EnvironmentVariableNotFound => return default_value,
+fn envBool(environ: std.process.Environ, name: []const u8, default_value: bool) bool {
+    const value = environ.getAlloc(std.heap.page_allocator, name) catch |err| switch (err) {
+        error.EnvironmentVariableMissing => return default_value,
         else => return default_value,
     };
     defer std.heap.page_allocator.free(value);
     return std.mem.eql(u8, value, "1") or std.ascii.eqlIgnoreCase(value, "true") or std.ascii.eqlIgnoreCase(value, "yes");
 }
 
-fn envUsize(name: []const u8, default_value: usize) usize {
-    const value = std.process.getEnvVarOwned(std.heap.page_allocator, name) catch |err| switch (err) {
-        error.EnvironmentVariableNotFound => return default_value,
+fn envUsize(environ: std.process.Environ, name: []const u8, default_value: usize) usize {
+    const value = environ.getAlloc(std.heap.page_allocator, name) catch |err| switch (err) {
+        error.EnvironmentVariableMissing => return default_value,
         else => return default_value,
     };
     defer std.heap.page_allocator.free(value);
     return std.fmt.parseInt(usize, value, 10) catch default_value;
 }
 
-fn envF64(name: []const u8, default_value: f64) f64 {
-    const value = std.process.getEnvVarOwned(std.heap.page_allocator, name) catch |err| switch (err) {
-        error.EnvironmentVariableNotFound => return default_value,
+fn envF64(environ: std.process.Environ, name: []const u8, default_value: f64) f64 {
+    const value = environ.getAlloc(std.heap.page_allocator, name) catch |err| switch (err) {
+        error.EnvironmentVariableMissing => return default_value,
         else => return default_value,
     };
     defer std.heap.page_allocator.free(value);
@@ -659,12 +659,12 @@ fn compareCase(
     }
 }
 
-pub fn main() !void {
-    var gpa_state: std.heap.GeneralPurposeAllocator(.{}) = .{};
+pub fn main(init: std.process.Init) !void {
+    var gpa_state: std.heap.DebugAllocator(.{}) = .init;
     defer _ = gpa_state.deinit();
     const gpa = gpa_state.allocator();
 
-    const config = Config.load();
+    const config = Config.load(init.minimal.environ);
     std.debug.print(
         "itijah differential test (itijah vs fribidi + icu)\nconfig: cases_per_seed_profile={d} max_len={d} max_reported={d} stop_on_first={} require_icu={} icu_min_pass_rate={d:.6} require_fribidi={}\n",
         .{

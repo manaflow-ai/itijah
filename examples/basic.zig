@@ -2,7 +2,7 @@ const std = @import("std");
 const itijah = @import("itijah");
 
 pub fn main() !void {
-    var gpa_state: std.heap.GeneralPurposeAllocator(.{}) = .{};
+    var gpa_state: std.heap.DebugAllocator(.{}) = .init;
     defer _ = gpa_state.deinit();
     const allocator = gpa_state.allocator();
 
